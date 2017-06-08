@@ -1,0 +1,6 @@
+[package]
+name = "'l''i''b''r''a''r''y''_''d''e''v''_''e''x''t''r''a''s'"
+version = "'0''.''1'"
+
+[dependencies]
+library_dev = {git = "https://github.com/dselsam/library_dev.git", rev = "9e9009034de6e32e3eaf9f3e8a58d2d02e534617"}
