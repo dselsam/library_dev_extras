@@ -1,6 +1,6 @@
 [package]
-name = "'l''i''b''r''a''r''y''_''d''e''v''_''e''x''t''r''a''s'"
-version = "'0''.''1'"
+name = "library_dev_extras"
+version = "0.1"
 path = "src"
 
 [dependencies]
