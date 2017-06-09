@@ -1,4 +1,4 @@
-import data.list.permutations library_dev.data.list.sort
+import library_dev.data.list.sort
 
 open list
 
