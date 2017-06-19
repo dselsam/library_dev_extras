@@ -102,11 +102,40 @@ lemma append_single {α : Type*} (x : α) (xs : list α) : [x] ++ xs = x :: xs :
 
 lemma append_nil_left {α : Type*} (xs : list α) : [] ++ xs = xs := rfl
 
--- TODO(dhs): prove
-lemma in_filter {α : Type*} (P : α → Prop) [decidable_pred P] (xs : list α) (x : α) : x ∈ xs → P x → x ∈ filter P xs := sorry
+lemma in_filter {α : Type*} (P : α → Prop) [decidable_pred P] : Π (xs : list α) (x : α), x ∈ xs → P x → x ∈ filter P xs
+| []      x H_x_in HPx := H_x_in
+| (y::ys) x H_x_in HPx :=
+have Hx : x = y ∨ x ∈ ys, from iff.mp (mem_cons_iff _ _ _) H_x_in,
+have Hy : P y ∨ ¬ (P y), from decidable.em _,
+begin
+dunfold filter,
+cases Hx with H_eq H_in,
+{ subst H_eq, simp [HPx] },
+cases Hy with HPy HnPy,
+{ simp [HPy], exact or.inr (in_filter _ _ H_in HPx) },
+{ simp [HnPy], exact in_filter _ _ H_in HPx }
+end
 
--- TODO(dhs): prove
-lemma of_in_filter {α : Type*} (P : α → Prop) [decidable_pred P] (xs : list α) (x : α) : x ∈ filter P xs → x ∈ xs ∧ P x := sorry
+lemma of_in_filter {α : Type*} (P : α → Prop) [decidable_pred P] : Π (xs : list α) (x : α), x ∈ filter P xs → x ∈ xs ∧ P x
+| []      x H_x_in := false.rec _ (not_mem_nil _ H_x_in)
+| (y::ys) x H_x_in :=
+--have Hx : x = y ∨ x ∈ ys, from iff.mp (mem_cons_iff _ _ _) H_x_in,
+have Hy : P y ∨ ¬ (P y), from decidable.em _,
+begin
+cases Hy with HPy HnPy,
+{
+dunfold filter at H_x_in,
+simp [HPy] at H_x_in,
+split,
+
+cases H_x_in with H_eq H_in,
+{ subst H_eq, apply mem_cons_self },
+{ apply mem_cons_of_mem, exact (of_in_filter _ _ H_in)^.left },
+
+cases H_x_in with H_eq H_in,
+{ subst H_eq, exact HPy  },
+{ exact (of_in_filter _ _ H_in)^.right  }
+end
 
 def miota : ℕ → ℕ → list ℕ
 | i 0     := []
