@@ -119,11 +119,9 @@ end
 lemma of_in_filter {α : Type*} (P : α → Prop) [decidable_pred P] : Π (xs : list α) (x : α), x ∈ filter P xs → x ∈ xs ∧ P x
 | []      x H_x_in := false.rec _ (not_mem_nil _ H_x_in)
 | (y::ys) x H_x_in :=
---have Hx : x = y ∨ x ∈ ys, from iff.mp (mem_cons_iff _ _ _) H_x_in,
 have Hy : P y ∨ ¬ (P y), from decidable.em _,
 begin
 cases Hy with HPy HnPy,
-{
 dunfold filter at H_x_in,
 simp [HPy] at H_x_in,
 split,
@@ -134,7 +132,13 @@ cases H_x_in with H_eq H_in,
 
 cases H_x_in with H_eq H_in,
 { subst H_eq, exact HPy  },
-{ exact (of_in_filter _ _ H_in)^.right  }
+{ exact (of_in_filter _ _ H_in)^.right  },
+
+dunfold filter at H_x_in,
+simp [HnPy] at H_x_in,
+split,
+apply mem_cons_of_mem, exact (of_in_filter _ _ H_x_in)^.left,
+exact (of_in_filter _ _ H_x_in)^.right
 end
 
 def miota : ℕ → ℕ → list ℕ
