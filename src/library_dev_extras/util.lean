@@ -195,6 +195,7 @@ inductive elem_at_idx {X : Type} : Π (xs : list X) (idx : ℕ) (x : X), Prop
 | base : ∀ (xs : list X) (x : X), elem_at_idx (x::xs) 0 x
 | step : ∀ (xs : list X) (x y : X) (idx : ℕ), elem_at_idx xs idx y → elem_at_idx (x::xs) (idx+1) y
 
+
 lemma elem_at_idx_of_at_idx {X : Type} [inhabited X] : ∀ {xs : list X} {idx : ℕ} {x : X},
   at_idx xs idx x → elem_at_idx xs idx x
 | [] _ _ H_at_idx := false.rec _ (nat.not_lt_zero _ H_at_idx^.left)
@@ -207,64 +208,6 @@ apply elem_at_idx_of_at_idx,
 apply and.intro,
 exact nat.lt_of_succ_lt_succ H_at_idx^.left,
 exact H_at_idx^.right
-end
-
-lemma at_idx_over {X : Type} [inhabited X] {xs : list X} {idx : ℕ} {x : X} : at_idx xs idx x → ¬ (idx < length xs) → false :=
-assume H_at_idx H_idx_big, H_idx_big H_at_idx^.left
-
-instance decidable_at_idx {α : Type*} [decidable_eq α] [inhabited α] (xs : list α) (idx : ℕ) (x : α) : decidable (at_idx xs idx x) :=
-if H : idx < length xs ∧ x = dnth xs idx then decidable.is_true H else decidable.is_false H
-
-lemma mem_of_cons_same {α : Type*} {x : α} {xs : list α} : x ∈ x::xs := by { apply or.inl, reflexivity }
-
-definition all_prop {α : Type*} (p : α → Prop) (l : list α) : Prop :=
-foldr (λ a r, p a ∧ r) true l
-
-def rcons {α : Type*} (a : α) : list α → list α
-| []        := [a]
-| (x :: xs) := x :: (rcons xs)
-
-def dnth_all {A : Type} [inhabited A] (idxs : list ℕ) (xs : list A) : list A := map (λ idx, dnth xs idx) idxs
-
-lemma nodup_at_idx_neq {A : Type} [inhabited A] : Π {x : A} {xs : list A} {y : A} {idx : ℕ},
-  nodup (x::xs) → at_idx (x::xs) (idx+1) y → y ≠ x := sorry
-
-lemma nodup_at_idx {A : Type} [inhabited A] : Π {x : A} {xs : list A} {y : A} {idx : ℕ},
-  nodup (x::xs) → at_idx (x::xs) (idx+1) y → at_idx xs idx y := sorry
-
-lemma nodup_append_subset₁ {X Y : Type} {xs ys zs : list (X × Y)} : nodup (ys ++ zs) → xs ⊆ ys → nodup (xs ++ zs) := sorry
-lemma nodup_append_swap {X : Type} {xs₁ xs₂ : list X} {x : X} : nodup (xs₁ ++ (x :: xs₂)) → nodup ((x::xs₁) ++ xs₂) := sorry
-
-lemma nodup_mem_append₂ {X : Type} {x : X} {xs₁ xs₂ : list X} : nodup (xs₁ ++ xs₂) → x ∈ xs₂ → x ∉ xs₁ :=
-assume (H_nd : nodup (xs₁ ++ xs₂)) (H₂ : x ∈ xs₂) (H₁ : x ∈ xs₁),
-have H_dj : disjoint xs₁ xs₂, from disjoint_of_nodup_append H_nd,
-H_dj H₁ H₂
-
-lemma nodup_cons_neq {X : Type} {x₁ x₂ : X} {xs : list X} : x₂ ∈ xs → nodup (x₁ :: xs) → x₁ ≠ x₂ := sorry
-
-lemma nodup_append_cons {X : Type} {xs₁ xs₂ : list X} {x : X} : nodup (xs₁ ++ (x :: xs₂)) → nodup (xs₁ ++ [x]) := sorry
-
-lemma nodup_append_cons_rest {X : Type} {xs₁ xs₂ : list X} {x : X} : nodup (xs₁ ++ (x :: xs₂)) → nodup (xs₁ ++ xs₂) := sorry
-
-lemma nodup_append_neq {X : Type} {xs₁ xs₂ : list X} {x₁ x₂ : X} : x₁ ∈ xs₁ → x₂ ∈ xs₂ → nodup (xs₁ ++ xs₂) → x₁ ≠ x₂ := sorry
-lemma nodup_append_cons_neq {X : Type} {xs : list X} {x₁ x₂ : X} : x₁ ∈ xs → nodup (xs ++ [x₂]) → x₁ ≠ x₂ := sorry
-
-lemma nodup_of_append_cons_cons {X : Type} {xs ys : list X} {y₁ y₂ : X} : nodup (xs ++ (y₁ :: y₂ :: ys)) → nodup (xs ++ (y₁ :: ys)) := sorry
-
-lemma map_filter_congr {α β : Type*} {f g : α → β} {p : α → Prop} [decidable_pred p] :
-  ∀ {xs : list α}, (∀ x, x ∈ xs → p x → f x = g x) → map f (filter p xs) = map g (filter p xs)
-| []      H := rfl
-| (x::xs) H :=
-begin
-dsimp [map, filter],
-assert H_px_em : p x ∨ ¬ (p x), { exact decidable.em _ },
-cases H_px_em,
-{ simph, apply congr_arg, apply map_filter_congr,
-  intros y H_y_in_xs H_py,
-  exact H y (mem_cons_of_mem _ H_y_in_xs) H_py },
-{ simph, apply map_filter_congr,
-  intros y H_y_in_xs H_py,
-  exact H y (mem_cons_of_mem _ H_y_in_xs) H_py }
 end
 
 lemma at_idx_0 {α : Type*} [inhabited α] {x : α} {xs : list α} : at_idx (x::xs) 0 x :=
@@ -328,7 +271,108 @@ apply mem_cons_of_mem,
 exact IH
 end
 
-lemma mem_not_mem_neq {α : Type*} [inhabited α] {x y : α} {xs : list α} : x ∈ xs → y ∉ xs → x ≠ y := sorry
+lemma at_idx_over {X : Type} [inhabited X] {xs : list X} {idx : ℕ} {x : X} : at_idx xs idx x → ¬ (idx < length xs) → false :=
+assume H_at_idx H_idx_big, H_idx_big H_at_idx^.left
+
+instance decidable_at_idx {α : Type*} [decidable_eq α] [inhabited α] (xs : list α) (idx : ℕ) (x : α) : decidable (at_idx xs idx x) :=
+if H : idx < length xs ∧ x = dnth xs idx then decidable.is_true H else decidable.is_false H
+
+lemma mem_of_cons_same {α : Type*} {x : α} {xs : list α} : x ∈ x::xs := by { apply or.inl, reflexivity }
+
+definition all_prop {α : Type*} (p : α → Prop) (l : list α) : Prop :=
+foldr (λ a r, p a ∧ r) true l
+
+def rcons {α : Type*} (a : α) : list α → list α
+| []        := [a]
+| (x :: xs) := x :: (rcons xs)
+
+def dnth_all {A : Type} [inhabited A] (idxs : list ℕ) (xs : list A) : list A := map (λ idx, dnth xs idx) idxs
+
+lemma mem_not_mem_neq {X : Type} {x₁ x₂ : X} {xs : list X} : x₁ ∈ xs → x₂ ∉ xs → x₁ ≠ x₂ :=
+begin
+intros H_in H_nin,
+intro H_eq,
+subst H_eq,
+exact H_nin H_in
+end
+
+lemma nodup_cons_neq {X : Type} {x₁ x₂ : X} {xs : list X} : x₂ ∈ xs → nodup (x₁ :: xs) → x₁ ≠ x₂ :=
+assume H_in H_nd,
+have H_nin : x₁ ∉ xs, from not_mem_of_nodup_cons H_nd,
+ne.symm $ mem_not_mem_neq H_in H_nin
+
+lemma nodup_at_idx_neq {A : Type} [inhabited A] {x : A} {xs : list A} {y : A} {idx : ℕ} :
+  nodup (x::xs) → at_idx (x::xs) (idx+1) y → y ≠ x :=
+begin
+intros H_nd H_at_idx,
+note H_at_idx' := at_idx_of_cons H_at_idx,
+assert H_in_xs : y ∈ xs,
+apply mem_of_at_idx H_at_idx',
+apply ne.symm,
+apply nodup_cons_neq H_in_xs H_nd,
+end
+
+lemma subset_nil {X : Type} {xs : list X} : xs ⊆ [] → xs = nil :=
+begin
+intros H_ss,
+dunfold has_subset.subset list.subset at H_ss,
+cases xs with x xs,
+reflexivity,
+assert H_x : x ∈ @nil X,
+apply H_ss,
+exact mem_of_cons_same,
+exfalso,
+exact (not_mem_nil x) H_x
+end
+
+
+lemma nodup_append_subset₁ {X : Type} {ys zs : list X} : Π (xs : list X), nodup (ys ++ zs) → xs ⊆ ys → nodup (xs ++ zs)
+| [] := begin simp, intros H_nd H_ss, exact nodup_of_nodup_append_right H_nd, end
+| (x::xs) := sorry
+
+lemma nodup_append_swap {X : Type} {xs₁ xs₂ : list X} {x : X} : nodup (xs₁ ++ (x :: xs₂)) → nodup ((x::xs₁) ++ xs₂) :=
+by apply list.nodup_head
+
+lemma nodup_mem_append₂ {X : Type} {x : X} {xs₁ xs₂ : list X} : nodup (xs₁ ++ xs₂) → x ∈ xs₂ → x ∉ xs₁ :=
+assume (H_nd : nodup (xs₁ ++ xs₂)) (H₂ : x ∈ xs₂) (H₁ : x ∈ xs₁),
+have H_dj : disjoint xs₁ xs₂, from disjoint_of_nodup_append H_nd,
+H_dj H₁ H₂
+
+lemma nodup_append_cons {X : Type} {xs₁ xs₂ : list X} {x : X} : nodup (xs₁ ++ (x :: xs₂)) → nodup (xs₁ ++ [x]) :=
+assume H_nd,
+have H_nd₁ : nodup xs₁, from nodup_of_nodup_append_left H_nd,
+have H_dj : disjoint xs₁ (x :: xs₂), from disjoint_of_nodup_append H_nd,
+have H_nin : x ∉ xs₁, from disjoint_right H_dj mem_of_cons_same,
+begin apply nodup_app_comm, simp, apply nodup_cons H_nin H_nd₁ end
+
+lemma nodup_append_cons_rest {X : Type} {xs₁ xs₂ : list X} {x : X} : nodup (xs₁ ++ (x :: xs₂)) → nodup (xs₁ ++ xs₂) :=
+assume H_nd, nodup_of_nodup_cons (nodup_head H_nd)
+
+lemma nodup_append_neq {X : Type} {xs₁ xs₂ : list X} {x₁ x₂ : X} : x₁ ∈ xs₁ → x₂ ∈ xs₂ → nodup (xs₁ ++ xs₂) → x₁ ≠ x₂ :=
+assume H₁_in H₂_in H_nd,
+have H_dj : disjoint xs₁ xs₂, from disjoint_of_nodup_append H_nd,
+have H₁_nin : x₁ ∉ xs₂, from disjoint_left H_dj H₁_in,
+ne.symm $ mem_not_mem_neq H₂_in H₁_nin
+
+lemma nodup_append_cons_neq {X : Type} {xs : list X} {x₁ x₂ : X} : x₁ ∈ xs → nodup (xs ++ [x₂]) → x₁ ≠ x₂ := sorry
+
+lemma nodup_of_append_cons_cons {X : Type} {xs ys : list X} {y₁ y₂ : X} : nodup (xs ++ (y₁ :: y₂ :: ys)) → nodup (xs ++ (y₁ :: ys)) := sorry
+
+lemma map_filter_congr {α β : Type*} {f g : α → β} {p : α → Prop} [decidable_pred p] :
+  ∀ {xs : list α}, (∀ x, x ∈ xs → p x → f x = g x) → map f (filter p xs) = map g (filter p xs)
+| []      H := rfl
+| (x::xs) H :=
+begin
+dsimp [map, filter],
+assert H_px_em : p x ∨ ¬ (p x), { exact decidable.em _ },
+cases H_px_em,
+{ simph, apply congr_arg, apply map_filter_congr,
+  intros y H_y_in_xs H_py,
+  exact H y (mem_cons_of_mem _ H_y_in_xs) H_py },
+{ simph, apply map_filter_congr,
+  intros y H_y_in_xs H_py,
+  exact H y (mem_cons_of_mem _ H_y_in_xs) H_py }
+end
 
 end list
 
