@@ -312,90 +312,25 @@ apply ne.symm,
 apply nodup_cons_neq H_in_xs H_nd,
 end
 
-lemma subset_nil {X : Type*} {xs : list X} : xs ⊆ [] → xs = nil :=
-begin
-intros H_ss,
-dunfold has_subset.subset list.subset at H_ss,
-cases xs with x xs,
-reflexivity,
-assert H_x : x ∈ @nil X,
-apply H_ss,
-exact mem_of_cons_same,
-exfalso,
-exact (not_mem_nil x) H_x
-end
-
-lemma subset_cons_nil {X : Type*} {xs : list X} {x : X} : ¬ (x :: xs ⊆ []) :=
+lemma sublist_cons_nil {X : Type*} {xs : list X} {x : X} : ¬ (x :: xs <+ []) :=
 begin
 intro H_contra,
-note H := list.subset_nil H_contra,
+note H := list.eq_nil_of_sublist_nil H_contra,
 injection H
 end
 
-inductive is_subset_of {α : Type*} : list α → list α → Prop
-| base : ∀ xs, is_subset_of [] xs
-| addr : ∀ xs y ys, is_subset_of xs ys → is_subset_of xs (y :: ys)
-| addl : ∀ xs x ys, is_subset_of xs ys → x ∈ ys → is_subset_of (x :: xs) ys
+lemma disjoint_of_sublist_left {α : Type*} {l₁ l₂ l : list α} : l₁ <+ l → disjoint l l₂ → disjoint l₁ l₂ :=
+λ ss d x xinl₁, d (subset_of_sublist ss xinl₁)
 
-lemma is_subset_of_subset {α : Type*} : Π {xs ys : list α}, xs ⊆ ys → is_subset_of xs ys
-| []      _       H_ss := by apply is_subset_of.base
-| (x::xs) []      H_ss := by { rw (subset_nil H_ss), apply is_subset_of.base }
-| (x::xs) (y::ys) H_ss :=
-begin
-apply is_subset_of.addl,
-apply is_subset_of_subset,
-apply subset_of_cons_subset H_ss,
-dunfold has_subset.subset list.subset at H_ss,
-exact H_ss mem_of_cons_same
-end
+lemma disjoint_of_sublist_right {α : Type*} {l₁ l₂ l : list α} : l₂ <+ l → disjoint l₁ l → disjoint l₁ l₂ :=
+λ ss d x xinl xinl₁, d xinl (subset_of_sublist ss xinl₁)
 
-lemma cons_subset_of_mem_subset {α : Type*} : Π (xs ys : list α) (x : α), x ∈ ys → xs ⊆ ys → (x :: xs) ⊆ ys :=
-assume xs ys x H_in H_ss,
-begin
-intros y Hy_in,
-dunfold has_mem.mem list.mem at Hy_in,
-cases Hy_in with H_eq H_mem,
-subst H_eq, exact H_in,
-exact H_ss H_mem
-end
-
-set_option trace.eqn_compiler.wf_rec true
-lemma subset_of_is_subset_of {α : Type*} : Π {xs ys : list α}, is_subset_of xs ys → xs ⊆ ys
-| []      _       H_isso := nil_subset _
-| (x::xs) []      H_isso :=
-begin
-cases H_isso with _ _ _ _ _ _ _ _ _ H_contra H_isso₁,
-exfalso, apply not_mem_nil _ H_contra
-end
-
-| (x::xs) (y::ys) H_isso :=
-begin
-cases H_isso with _ _ H₁ H₂ H_isso₁ H₄ H₅ H₆ H_isso₁ H_in H_isso₂,
-apply subset_cons_of_subset _ (subset_of_is_subset_of H_isso₁),
-apply cons_subset_of_mem_subset,
-exact H_in,
-apply subset_of_is_subset_of H_isso₁
-end using_well_founded
-
-lemma not_mem_of_nodup_subset {α : Type*} {xs ys : list α} {x : α} : x :: xs ⊆ ys → nodup ys → x ∉ xs :=
-begin
-intros H_ss H_nd H_in,
-
-end
-
-lemma nodup_append_subset₁ {X : Type*} {ys zs : list X} : Π (xs : list X), nodup (ys ++ zs) → xs ⊆ ys → nodup (xs ++ zs) :=
-begin
-intros xs H_nd H_ss,
-note H_isso := is_subset_of_subset H_ss,
-induction H_isso with xs xs y ys H_ss₁ IH₁ xs x ys H_ss₂ H_in₂ IH₂,
-{ simp, exact nodup_of_nodup_append_right H_nd },
-{ apply IH₁, apply nodup_of_nodup_cons H_nd, exact subset_of_is_subset_of H_ss₁ },
-assert H_nd_xs_zs : nodup (xs ++ zs),
-{ exact IH₂ H_nd (subset_of_cons_subset H_ss) },
-simp,
-assert H_x_nin_xs : x ∉ xs,
-
-end
+lemma nodup_append_sublist₁ {X : Type*} {ys zs : list X} (xs : list X) : nodup (ys ++ zs) → xs <+ ys → nodup (xs ++ zs) :=
+assume H_nd H_sl,
+have H_nd_xs : nodup xs, from nodup_of_sublist H_sl (nodup_of_nodup_append_left H_nd),
+have H_nd_zs : nodup zs, from nodup_of_nodup_append_right H_nd,
+have H_dj : disjoint xs zs, from disjoint_of_sublist_left H_sl (disjoint_of_nodup_append H_nd),
+nodup_append_of_nodup_of_nodup_of_disjoint H_nd_xs H_nd_zs H_dj
 
 lemma nodup_append_swap {X : Type} {xs₁ xs₂ : list X} {x : X} : nodup (xs₁ ++ (x :: xs₂)) → nodup ((x::xs₁) ++ xs₂) :=
 by apply list.nodup_head
