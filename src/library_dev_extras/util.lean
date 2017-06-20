@@ -325,7 +325,6 @@ exfalso,
 exact (not_mem_nil x) H_x
 end
 
-
 lemma nodup_append_subset₁ {X : Type} {ys zs : list X} : Π (xs : list X), nodup (ys ++ zs) → xs ⊆ ys → nodup (xs ++ zs)
 | [] := begin simp, intros H_nd H_ss, exact nodup_of_nodup_append_right H_nd, end
 | (x::xs) := sorry
@@ -354,9 +353,22 @@ have H_dj : disjoint xs₁ xs₂, from disjoint_of_nodup_append H_nd,
 have H₁_nin : x₁ ∉ xs₂, from disjoint_left H_dj H₁_in,
 ne.symm $ mem_not_mem_neq H₂_in H₁_nin
 
-lemma nodup_append_cons_neq {X : Type} {xs : list X} {x₁ x₂ : X} : x₁ ∈ xs → nodup (xs ++ [x₂]) → x₁ ≠ x₂ := sorry
+lemma nodup_append_cons_neq {X : Type} {xs : list X} {x₁ x₂ : X} : x₁ ∈ xs → nodup (xs ++ [x₂]) → x₁ ≠ x₂ :=
+assume H₁_in H_nd,
+have H_nd' : nodup (x₂ :: xs), from nodup_app_comm H_nd,
+have H₂_nin : x₂ ∉ xs, from not_mem_of_nodup_cons H_nd',
+mem_not_mem_neq H₁_in H₂_nin
 
-lemma nodup_of_append_cons_cons {X : Type} {xs ys : list X} {y₁ y₂ : X} : nodup (xs ++ (y₁ :: y₂ :: ys)) → nodup (xs ++ (y₁ :: ys)) := sorry
+lemma nodup_of_append_cons_cons {X : Type} {xs ys : list X} {y₁ y₂ : X} : nodup (xs ++ (y₁ :: y₂ :: ys)) → nodup (xs ++ (y₁ :: ys)) :=
+assume H_nd,
+have H_nd' : nodup (y₁ :: (xs ++ y₂ :: ys)), from nodup_head H_nd,
+have H₁_nin : y₁ ∉ xs ++ y₂ :: ys, from not_mem_of_nodup_cons H_nd',
+have H₁_nin₁ : y₁ ∉ xs, from not_mem_of_not_mem_append_left H₁_nin,
+have H₁_nin₂ : y₁ ∉ ys, from not_mem_of_not_mem_cons (not_mem_of_not_mem_append_right H₁_nin),
+have H_nd'' : nodup (xs ++ y₂ :: ys), from nodup_of_nodup_cons H_nd',
+have H_nd''' : nodup (y₂ :: (xs ++ ys)), from nodup_head H_nd'',
+have H_nd'''' : nodup (xs ++ ys), from nodup_of_nodup_cons H_nd''',
+nodup_middle (nodup_cons (not_mem_append H₁_nin₁ H₁_nin₂) H_nd'''')
 
 lemma map_filter_congr {α β : Type*} {f g : α → β} {p : α → Prop} [decidable_pred p] :
   ∀ {xs : list α}, (∀ x, x ∈ xs → p x → f x = g x) → map f (filter p xs) = map g (filter p xs)
